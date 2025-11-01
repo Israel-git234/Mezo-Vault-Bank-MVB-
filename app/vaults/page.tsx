@@ -1,11 +1,21 @@
+"use client";
+
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import { TrendingUp, Zap, Shield, ArrowLeftRight } from "lucide-react";
 import { formatMUSD, AIFormatter } from "@/lib/utils";
+import { getAppState, investToVault, withdrawFromVault, reinvestAccrued, toggleAutoRepay, accrueYield } from "@/lib/state";
+import { useEffect, useState } from "react";
+import { useToast } from "@/components/Toast";
 
 export default function VaultsPage() {
+  const { toast } = useToast();
+  const [investAmount, setInvestAmount] = useState<string>("");
+  const [withdrawAmount, setWithdrawAmount] = useState<string>("");
+  const state = getAppState();
+  useEffect(() => { accrueYield(0.08); }, []);
   const vaults = [
     {
       id: "stable",
@@ -73,6 +83,60 @@ export default function VaultsPage() {
             Deploy your MUSD into automated yield strategies. Earn passive income or auto-repay your loan interest.
           </p>
         </div>
+
+        {/* Smart Vaults - Auto-Repay */}
+        <Card className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold">Smart Vaults</h2>
+            <div className="flex items-center gap-2">
+              <label className="text-sm">Enable Auto-Repay Interest</label>
+              <input
+                type="checkbox"
+                defaultChecked={state.autoRepayEnabled}
+                onChange={(e) => { toggleAutoRepay(e.target.checked); toast({ title: e.target.checked ? "Auto-Repay Enabled" : "Auto-Repay Disabled" }); }}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Vault Balance</p>
+              <p className="text-2xl font-bold">{formatMUSD(state.vaultBalance)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Accrued Yield</p>
+              <p className="text-2xl font-bold text-green-600">{formatMUSD(state.vaultAccrued)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">APY</p>
+              <p className="text-2xl font-bold text-green-600">8%</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                placeholder="Invest (MUSD)"
+                value={investAmount}
+                onChange={(e) => setInvestAmount(e.target.value)}
+                className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <Button onClick={() => { const v = parseFloat(investAmount||'0'); if (v>0){ investToVault(v); toast({ title: "Invested", variant: "success" }); setInvestAmount(''); } }}>Invest</Button>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                placeholder="Withdraw (MUSD)"
+                value={withdrawAmount}
+                onChange={(e) => setWithdrawAmount(e.target.value)}
+                className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <Button variant="outline" onClick={() => { const v = parseFloat(withdrawAmount||'0'); if (v>0){ withdrawFromVault(v); toast({ title: "Withdrawn", variant: "success" }); setWithdrawAmount(''); } }}>Withdraw</Button>
+            </div>
+            <div className="flex items-center">
+              <Button className="w-full" variant="secondary" onClick={() => { reinvestAccrued(); toast({ title: "Yield Reinvested", variant: "success" }); }}>Reinvest Accrued</Button>
+            </div>
+          </div>
+        </Card>
 
         {/* Market Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

@@ -22,18 +22,20 @@ export default function WelcomePage() {
   }, [isConnected, router]);
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(135deg,hsl(var(--primary))_0%,hsl(var(--secondary))_100%)] flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl">
+    <div className="relative min-h-screen flex items-center justify-center p-4 bg-[linear-gradient(135deg,hsl(var(--primary))_0%,hsl(var(--secondary))_90%)]">
+      {/* Subtle dark overlay to reduce brightness for better contrast */}
+      <div className="absolute inset-0 bg-black/25" aria-hidden />
+      <div className="relative w-full max-w-4xl">
         {/* Splash/Intro Screen */}
         {step === 1 && (
           <div className="text-center animate-fade-in">
-            <div className="w-24 h-24 gradient-bg rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-2xl animate-float">
-              <Bitcoin className="w-14 h-14 text-white" />
+            <div className="w-24 h-24 mx-auto mb-8 flex items-center justify-center rounded-3xl shadow-2xl animate-float bg-white/10 ring-1 ring-white/20 backdrop-blur-sm">
+              <Bitcoin className="w-14 h-14 text-white drop-shadow" />
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold gradient-text mb-4">
+            <h1 className="text-5xl md:text-6xl font-extrabold text-white drop-shadow-lg mb-4">
               MezoBank Vaults
             </h1>
-            <p className="text-xl text-white/90 mb-12 max-w-2xl mx-auto">
+            <p className="text-xl text-white/85 mb-12 max-w-2xl mx-auto">
               Your Bitcoin-backed financial platform.<br />
               Borrow, Save, and Spend — All in One Place.
             </p>
@@ -143,7 +145,7 @@ export default function WelcomePage() {
             )}
 
               <p className="text-center text-sm text-gray-500">
-                Don't have a wallet? <a href="https://metamask.io" target="_blank" className="text-indigo-600 hover:underline">Install MetaMask</a>
+                Don&apos;t have a wallet? <a href="https://metamask.io" target="_blank" className="text-indigo-600 hover:underline">Install MetaMask</a>
               </p>
             </div>
           </Card>

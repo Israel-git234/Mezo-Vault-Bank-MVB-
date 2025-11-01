@@ -24,6 +24,7 @@ import TxBanner from "@/components/TxBanner";
 import BottomSheet from "@/components/BottomSheet";
 import { useToast } from "@/components/Toast";
 import { appendHistory } from "@/lib/history";
+import { addBorrowedToAvailable, deductForRepay } from "@/lib/state";
 
 export default function BorrowPage() {
   const { address } = useAccount();
@@ -46,9 +47,9 @@ export default function BorrowPage() {
   const withdrawState = withdrawError ? "error" : isWithdrawing ? "pending" : withdrawSuccess ? "success" : "idle";
 
   const priceBig = useMemo(() => formatBTCPrice(btcPriceUsd), [btcPriceUsd]);
-  const userAddr = address as any;
-  const { position, isLoading: posLoading, refetch } = useGetPosition(userAddr as Address | undefined);
-  const { ratio } = useGetCollateralRatio(userAddr as Address | undefined, priceBig);
+  const userAddr = address as Address | undefined;
+  const { position, refetch } = useGetPosition(userAddr);
+  const { ratio } = useGetCollateralRatio(userAddr, priceBig);
 
   const loanStats = {
     currentRate: 3.5,
@@ -82,7 +83,6 @@ export default function BorrowPage() {
   }, []);
 
   // Toasts + local history
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (depositSuccess) {
       toast({ title: "Collateral deposited", variant: "success" });
@@ -90,26 +90,25 @@ export default function BorrowPage() {
       if (btc > 0) appendHistory({ type: "deposit", amount: btc });
       if (navigator.vibrate) navigator.vibrate(10);
     }
-  }, [depositSuccess]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [depositSuccess, toast, btcInput]);
   useEffect(() => {
     if (borrowSuccess) {
       toast({ title: "Borrow successful", variant: "success" });
       const usd = parseFloat(borrowInput || "0");
       if (usd > 0) appendHistory({ type: "borrow", amount: usd });
+      if (usd > 0) addBorrowedToAvailable(usd);
       if (navigator.vibrate) navigator.vibrate(10);
     }
-  }, [borrowSuccess]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [borrowSuccess, toast, borrowInput]);
   useEffect(() => {
     if (repaySuccess) {
       toast({ title: "Repayment confirmed", variant: "success" });
       const usd = parseFloat(repayInput || "0");
       if (usd > 0) appendHistory({ type: "repay", amount: usd });
+      if (usd > 0) deductForRepay(usd);
       if (navigator.vibrate) navigator.vibrate(10);
     }
-  }, [repaySuccess]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repaySuccess, toast, repayInput]);
   useEffect(() => {
     if (withdrawSuccess) {
       toast({ title: "Withdrawal confirmed", variant: "success" });
@@ -117,7 +116,7 @@ export default function BorrowPage() {
       if (btc > 0) appendHistory({ type: "withdraw", amount: btc });
       if (navigator.vibrate) navigator.vibrate(10);
     }
-  }, [withdrawSuccess]);
+  }, [withdrawSuccess, toast, withdrawInput]);
 
   // Derived borrow capacity and after-borrow ratio
   const collateralBtc = position ? Number(position.collateral) / 1e8 : 0;

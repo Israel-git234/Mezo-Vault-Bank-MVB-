@@ -1,15 +1,40 @@
+"use client";
+
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
-import { Zap, Bolt, ShoppingCart, Send, QrCode, Copy } from "lucide-react";
+import { Zap, Bolt, ShoppingCart, Send, QrCode } from "lucide-react";
 import { formatMUSD, formatBTC } from "@/lib/utils";
+import { getAppState, applySpend } from "@/lib/state";
+import { useState } from "react";
+import { useToast } from "@/components/Toast";
+import { appendHistory } from "@/lib/history";
 
 export default function SpendPage() {
-  const spendingStats = {
-    availableCredit: 0,
-    totalSpent: 0,
-    lightningActive: true,
+  const { toast } = useToast();
+  const [invoice, setInvoice] = useState("");
+  const [amount, setAmount] = useState<string>("");
+  const state = getAppState();
+
+  const available = state.musdAvailable;
+
+  const handlePay = async () => {
+    const usd = parseFloat(amount || "0");
+    if (!invoice || !usd || usd <= 0) {
+      toast({ title: "Enter invoice and amount", variant: "info" });
+      return;
+    }
+    if (usd > available) {
+      toast({ title: "Insufficient spendable balance", variant: "error" });
+      return;
+    }
+    // Simulate payment
+    applySpend(usd);
+    appendHistory({ type: "spend", amount: usd });
+    toast({ title: "Payment sent!", description: "MUSD → BTC lightning payment", variant: "success" });
+    setInvoice("");
+    setAmount("");
   };
 
   return (
@@ -47,9 +72,9 @@ export default function SpendPage() {
 
               <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 text-white mb-6">
                 <p className="text-sm opacity-90 mb-2">Available to Spend</p>
-                <p className="text-4xl font-bold">{formatMUSD(spendingStats.availableCredit)}</p>
+                <p className="text-4xl font-bold">{formatMUSD(available)}</p>
                 <p className="text-sm opacity-75 mt-2">
-                  {formatBTC(spendingStats.availableCredit / 67500)} BTC equivalent
+                  {formatBTC(available / 67500)} BTC equivalent
                 </p>
               </div>
 
@@ -61,6 +86,8 @@ export default function SpendPage() {
                       placeholder="lnbc..."
                       rows={4}
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={invoice}
+                      onChange={(e) => setInvoice(e.target.value)}
                     />
                     <button className="absolute top-3 right-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
                       <QrCode className="w-4 h-4" />
@@ -71,11 +98,11 @@ export default function SpendPage() {
                 <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Invoice Amount</span>
-                    <span className="text-sm font-semibold">--</span>
+                    <span className="text-sm font-semibold">{amount ? `$${Number(amount).toLocaleString('en-US', { maximumFractionDigits: 2 })}` : "--"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">MUSD to Pay</span>
-                    <span className="text-sm font-semibold">--</span>
+                    <span className="text-sm font-semibold">{amount || "--"}</span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-indigo-200 dark:border-indigo-800">
                     <span className="text-sm font-medium">Transaction Fee</span>
@@ -83,20 +110,25 @@ export default function SpendPage() {
                   </div>
                 </div>
 
-                <Button className="w-full" size="lg">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    placeholder="Amount (MUSD)"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <Button className="flex-1" size="lg" onClick={handlePay}>
                   <Send className="w-5 h-5 mr-2" />
                   Pay Lightning Invoice
-                </Button>
+                  </Button>
+                </div>
               </div>
             </Card>
 
             <Card>
               <h3 className="text-xl font-bold mb-4">Recent Transactions</h3>
-              <div className="text-center py-12 text-gray-400">
-                <ShoppingCart className="w-16 h-16 mx-auto mb-4" />
-                <p>No transactions yet</p>
-                <p className="text-sm">Start paying Lightning invoices to see your history</p>
-              </div>
+              <div className="text-gray-400 text-sm">See dashboard for full history.</div>
             </Card>
           </div>
 
@@ -129,20 +161,20 @@ export default function SpendPage() {
               <div className="space-y-4">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Spent</p>
-                  <p className="text-2xl font-bold">{formatMUSD(spendingStats.totalSpent)}</p>
+                  <p className="text-2xl font-bold">{formatMUSD(0)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Lightning Status</p>
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${spendingStats.lightningActive ? "bg-green-500" : "bg-red-500"}`}></div>
+                    <div className={`w-2 h-2 rounded-full bg-green-500`}></div>
                     <span className="font-medium">
-                      {spendingStats.lightningActive ? "Active" : "Inactive"}
+                      Active
                     </span>
                   </div>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Transactions</p>
-                  <p className="text-xl font-bold">0</p>
+                  <p className="text-xl font-bold">—</p>
                 </div>
               </div>
             </Card>

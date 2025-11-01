@@ -1,7 +1,7 @@
 "use client";
 
-import { useAccount, useWatchContractEvent } from "wagmi";
-import { useEffect, useMemo, useState } from "react";
+import { useAccount } from "wagmi";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import BalanceCard from "@/components/BalanceCard";
@@ -17,23 +17,21 @@ import {
   ArrowDownRight,
   Award
 } from "lucide-react";
-import { formatMUSD } from "@/lib/utils";
-import { useGetPosition, useGetCollateralRatio, formatBTCPrice, VaultManagerABI, VAULT_MANAGER_ADDRESS, satoshisToBTC } from "@/lib/contracts";
+import { useGetPosition } from "@/lib/contracts";
+import { getAppState, accrueYield } from "@/lib/state";
 import type { Address } from "viem";
 
 export default function DashboardPage() {
   const { isConnected, address } = useAccount();
   const router = useRouter();
   const [btcPrice, setBtcPrice] = useState<number>(67500);
-  const priceBig = useMemo(() => formatBTCPrice(btcPrice), [btcPrice]);
 
   const { position } = useGetPosition(address as Address | undefined);
-  const { ratio } = useGetCollateralRatio(address as Address | undefined, priceBig);
 
   // Derive user data from on-chain position
-  const collateralBtc = position ? Number((position as any).collateral) / 1e8 : 0;
-  const borrowedUsd = position ? Number((position as any).borrowed) / 100 : 0;
-  const interestUsd = position ? Number((position as any).interestOwed) / 100 : 0;
+  const collateralBtc = position ? Number(position.collateral) / 1e8 : 0;
+  const borrowedUsd = position ? Number(position.borrowed) / 100 : 0;
+  const interestUsd = position ? Number(position.interestOwed) / 100 : 0;
   const totalDebtUsd = borrowedUsd + interestUsd;
 
   // Estimate credit available using 150% min collateral ratio
@@ -58,33 +56,12 @@ export default function DashboardPage() {
       } catch {}
     };
     fetchPrice();
+    // accrue simulated vault yield on each visit
+    accrueYield(0.08);
   }, []);
 
   // Live activity via events
-  useWatchContractEvent({
-    address: VAULT_MANAGER_ADDRESS,
-    abi: VaultManagerABI as any,
-    eventName: "CollateralDeposited",
-    onLogs() {},
-  });
-  useWatchContractEvent({
-    address: VAULT_MANAGER_ADDRESS,
-    abi: VaultManagerABI as any,
-    eventName: "CollateralWithdrawn",
-    onLogs() {},
-  });
-  useWatchContractEvent({
-    address: VAULT_MANAGER_ADDRESS,
-    abi: VaultManagerABI as any,
-    eventName: "MUSDBorrowed",
-    onLogs() {},
-  });
-  useWatchContractEvent({
-    address: VAULT_MANAGER_ADDRESS,
-    abi: VaultManagerABI as any,
-    eventName: "LoanRepaid",
-    onLogs() {},
-  });
+  
 
   const quickActions = [
     { name: "Deposit BTC", href: "/borrow", color: "bg-indigo-600", icon: ArrowDownRight },
@@ -124,6 +101,12 @@ export default function DashboardPage() {
             variant="musd"
           />
           <BalanceCard
+            title="Spendable"
+            amount={`${getAppState().musdAvailable.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
+            currency="MUSD"
+            icon={<ArrowUpRight className="h-5 w-5" />}
+          />
+          <BalanceCard
             title="Credit Available"
             amount={`${creditAvailableUsd.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
             currency="MUSD"
@@ -131,9 +114,12 @@ export default function DashboardPage() {
           />
           <Card className="p-6">
             <div className="flex items-start justify-between mb-4">
-              <div>
+              <div className="flex-1">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Credo Score</p>
-                <p className="text-2xl font-bold">{ratio ? Number(ratio) : "--"}%</p>
+                <p className="text-2xl font-bold">{getAppState().credoScore}</p>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                  <div className="bg-yellow-500 h-2 rounded-full" style={{ width: `${Math.min(100, (getAppState().credoScore/10))}%` }} />
+                </div>
                 <p className="text-sm text-gray-500 mt-1">Build your credit</p>
               </div>
               <div className="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">

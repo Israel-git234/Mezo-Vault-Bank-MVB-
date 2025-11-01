@@ -2,7 +2,7 @@ import Header from "@/components/Header";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import { User, Award, History, Shield, TrendingUp, CheckCircle } from "lucide-react";
-import { formatMUSD, formatBTC } from "@/lib/utils";
+import { formatMUSD } from "@/lib/utils";
 
 export default function ProfilePage() {
   // Mock data - will be replaced with actual Mezo Passport & Credo data
