@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import Sidebar from "@/components/Sidebar";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import { Zap, Bolt, ShoppingCart, Send, QrCode, Copy } from "lucide-react";
@@ -12,10 +13,11 @@ export default function SpendPage() {
   };
 
   return (
-    <div className="min-h-screen">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="min-h-screen flex">
+      <Sidebar />
+      <div className="flex-1 min-w-0">
+        <Header />
+        <main className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
@@ -173,7 +175,8 @@ export default function SpendPage() {
             </Card>
           </div>
         </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

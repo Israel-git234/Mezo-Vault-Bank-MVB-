@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import Sidebar from "@/components/Sidebar";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import { TrendingUp, Zap, Shield, ArrowLeftRight } from "lucide-react";
@@ -60,10 +61,11 @@ export default function VaultsPage() {
   ];
 
   return (
-    <div className="min-h-screen">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="min-h-screen flex">
+      <Sidebar />
+      <div className="flex-1 min-w-0">
+        <Header />
+        <main className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2 gradient-text">Smart Yield Vaults</h1>
@@ -168,7 +170,7 @@ export default function VaultsPage() {
             <Card className="text-center py-12">
               <TrendingUp className="w-16 h-16 mx-auto mb-4 text-gray-400" />
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                You don't have any active positions yet.
+                You don&apos;t have any active positions yet.
               </p>
               <Button>Explore Vaults</Button>
             </Card>
@@ -202,7 +204,8 @@ export default function VaultsPage() {
             </div>
           )}
         </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

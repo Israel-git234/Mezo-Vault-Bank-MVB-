@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useAccount } from "wagmi";
+import { useEffect, useState } from "react";
+import { useAccount, useConnect } from "wagmi";
+import { injected } from "@wagmi/connectors";
 import { useRouter } from "next/navigation";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
@@ -10,23 +11,26 @@ import { Bitcoin, Shield, TrendingUp, Zap, ArrowRight, CheckCircle } from "lucid
 export default function WelcomePage() {
   const [step, setStep] = useState(1);
   const { isConnected } = useAccount();
+  const { connect, isPending: isConnecting } = useConnect();
   const router = useRouter();
 
-  // Auto-redirect if already connected
-  if (isConnected && step === 1) {
-    router.push("/dashboard");
-  }
+  // Redirect to dashboard as soon as wallet is connected
+  useEffect(() => {
+    if (isConnected) {
+      router.push("/dashboard");
+    }
+  }, [isConnected, router]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-orange-500 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[linear-gradient(135deg,hsl(var(--primary))_0%,hsl(var(--secondary))_100%)] flex items-center justify-center p-4">
       <div className="w-full max-w-4xl">
         {/* Splash/Intro Screen */}
         {step === 1 && (
           <div className="text-center animate-fade-in">
-            <div className="w-24 h-24 gradient-bg rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-2xl">
+            <div className="w-24 h-24 gradient-bg rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-2xl animate-float">
               <Bitcoin className="w-14 h-14 text-white" />
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
+            <h1 className="text-5xl md:text-6xl font-bold gradient-text mb-4">
               MezoBank Vaults
             </h1>
             <p className="text-xl text-white/90 mb-12 max-w-2xl mx-auto">
@@ -34,8 +38,9 @@ export default function WelcomePage() {
               Borrow, Save, and Spend — All in One Place.
             </p>
             <Button 
-              size="lg" 
-              className="bg-white text-indigo-600 hover:bg-gray-100 shadow-xl"
+              size="lg"
+              variant="hero"
+              className="animate-glow-pulse"
               onClick={() => setStep(2)}
             >
               Get Started
@@ -50,7 +55,7 @@ export default function WelcomePage() {
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold mb-2">Welcome to MezoBank</h2>
               <p className="text-gray-600 dark:text-gray-400">
-                Let's set up your account in 3 simple steps
+                Let&apos;s set up your account in 3 simple steps
               </p>
             </div>
 
@@ -114,14 +119,28 @@ export default function WelcomePage() {
                 </div>
               </div>
 
+            {!isConnected ? (
               <Button 
-                className="w-full" 
+                className="w-full"
+                variant="default"
                 size="lg"
-                onClick={() => setStep(3)}
+                onClick={() => connect({ connector: injected() })}
+                isLoading={isConnecting}
               >
-                Connect Wallet
+                {isConnecting ? "Connecting..." : "Connect Wallet"}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
+            ) : (
+              <Button 
+                className="w-full"
+                variant="default"
+                size="lg"
+                onClick={() => router.push("/dashboard")}
+              >
+                Enter Dashboard
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            )}
 
               <p className="text-center text-sm text-gray-500">
                 Don't have a wallet? <a href="https://metamask.io" target="_blank" className="text-indigo-600 hover:underline">Install MetaMask</a>
@@ -175,7 +194,8 @@ export default function WelcomePage() {
             </div>
 
             <Button 
-              className="w-full" 
+              className="w-full"
+              variant="glass"
               size="lg"
               onClick={() => router.push("/dashboard")}
             >
@@ -188,4 +208,5 @@ export default function WelcomePage() {
     </div>
   );
 }
+
 

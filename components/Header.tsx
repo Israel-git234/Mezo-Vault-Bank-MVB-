@@ -30,7 +30,7 @@ export default function Header() {
 	const isActive = (href: string) => pathname === href;
 
 	return (
-		<header className="sticky top-0 z-50 w-full border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+    <header className="sticky top-0 z-50 w-full border-b bg-white/5 backdrop-blur-sm border-[var(--lux-border)]">
 			<div className="container mx-auto px-4 h-16 flex items-center justify-between">
 				{/* Logo */}
 				<Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
@@ -61,19 +61,22 @@ export default function Header() {
 				</nav>
 
 				{/* Actions */}
-				<div className="flex items-center space-x-3">
-					{isConnected ? (
-						<Button variant="outline" size="sm" onClick={() => disconnect()}>
+					<div className="flex items-center space-x-3">
+						<Button
+							variant={isConnected ? "outline" : "default"}
+							size="sm"
+							onClick={() => (isConnected ? disconnect() : handleConnect())}
+							isLoading={!isConnected && isConnecting}
+						>
 							<Wallet className="w-4 h-4 mr-2" />
-							<span className="hidden sm:inline">{truncateAddress(address!)}</span>
+							<span className="hidden sm:inline" suppressHydrationWarning>
+								{isConnected ? truncateAddress(address!) : "Connect Wallet"}
+							</span>
+							<span className="sm:hidden" suppressHydrationWarning>
+								{isConnected ? "Connected" : "Connect"}
+							</span>
 						</Button>
-					) : (
-						<Button size="sm" onClick={handleConnect} isLoading={isConnecting}>
-							<Wallet className="w-4 h-4 mr-2" />
-							<span className="hidden sm:inline">Connect Wallet</span>
-							<span className="sm:hidden">Connect</span>
-						</Button>
-					)}
+					</div>
 					<button 
 						onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
 						className="md:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
@@ -81,7 +84,6 @@ export default function Header() {
 						{mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
 					</button>
 				</div>
-			</div>
 
 			{/* Mobile Menu */}
 			{mobileMenuOpen && (

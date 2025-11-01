@@ -5,13 +5,21 @@
  */
 
 import { useWriteContract, useReadContract } from 'wagmi';
-import { Address } from 'viem';
+import type { Address } from 'viem';
 
 // ✅ DEPLOYED CONTRACT ADDRESS
-const VAULT_MANAGER_ADDRESS = '0xD93111E3C9E9C68C1BaE07F1E3c5f3ce483c9b8f' as Address;
+export const VAULT_MANAGER_ADDRESS = '0xD93111E3C9E9C68C1BaE07F1E3c5f3ce483c9b8f' as Address;
 
 // ✅ IMPORTED ABI
 import VaultManagerABI from './abis/VaultManager.json';
+export { VaultManagerABI };
+
+// Types returned by the contract
+export interface UserPosition {
+  collateral: bigint; // satoshis
+  borrowed: bigint;   // cents
+  interestOwed: bigint; // cents
+}
 
 /**
  * Hook to deposit BTC collateral
@@ -95,8 +103,8 @@ export function useGetPosition(userAddress?: Address) {
     functionName: 'getPosition',
     args: userAddress ? [userAddress] : undefined,
   });
-  
-  return { position: data, isLoading, error, refetch };
+
+  return { position: data as unknown as UserPosition | undefined, isLoading, error, refetch };
 }
 
 /**
@@ -109,8 +117,8 @@ export function useGetCollateralRatio(userAddress?: Address, btcPrice?: bigint) 
     functionName: 'getCollateralRatio',
     args: userAddress && btcPrice ? [userAddress, btcPrice] : undefined,
   });
-  
-  return { ratio: data, isLoading, error };
+
+  return { ratio: data as unknown as bigint | undefined, isLoading, error };
 }
 
 /**

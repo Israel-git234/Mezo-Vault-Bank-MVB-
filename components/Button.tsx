@@ -4,14 +4,14 @@ import { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "outline" | "ghost";
+  variant?: "default" | "outline" | "hero" | "glass" | "secondary" | "ghost";
   size?: "sm" | "md" | "lg";
   isLoading?: boolean;
   children: ReactNode;
 }
 
 export default function Button({
-  variant = "primary",
+  variant = "default",
   size = "md",
   isLoading = false,
   children,
@@ -22,14 +22,19 @@ export default function Button({
   const baseStyles =
     "inline-flex items-center justify-center rounded-full font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
 
-  const variants = {
-    primary:
-      "bg-gradient-to-r from-indigo-500 to-orange-500 text-white hover:from-indigo-600 hover:to-orange-600 focus:ring-indigo-500 shadow-lg hover:shadow-xl",
-    secondary:
-      "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200 hover:bg-indigo-200 dark:hover:bg-indigo-800 focus:ring-indigo-500",
+  const variants: Record<string, string> = {
+    default:
+      "bg-[hsl(var(--primary))] text-white hover:brightness-110 focus:ring-[hsl(var(--secondary))] shadow-md glow-red",
     outline:
-      "border-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 focus:ring-indigo-500",
-    ghost: "text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 focus:ring-indigo-500",
+      "bg-transparent border border-[hsl(0_0%_100%_/0.14)] text-[hsl(var(--foreground))] hover:bg-white/5 focus:ring-[hsl(var(--secondary))]",
+    hero:
+      "bg-[linear-gradient(135deg,hsl(var(--primary))_0%,hsl(var(--secondary))_100%)] text-[hsl(var(--background))] hover:opacity-95 focus:ring-[hsl(var(--secondary))] shadow-lg glow-red",
+    glass:
+      "bg-[hsl(var(--card)/0.35)] backdrop-blur-xl border border-[hsl(0_0%_100%_/0.08)] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--card)/0.5)] focus:ring-[hsl(var(--secondary))] shadow-sm",
+    // Backward-compat aliases
+    secondary:
+      "bg-[hsl(var(--card))] text-[hsl(var(--foreground))] border border-[hsl(0_0%_100%_/0.08)] hover:bg-[hsl(var(--card-2))] focus:ring-[hsl(var(--secondary))]",
+    ghost: "text-[hsl(var(--secondary))] hover:bg-white/5 focus:ring-[hsl(var(--secondary))]",
   };
 
   const sizes = {

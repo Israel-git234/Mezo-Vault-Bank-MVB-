@@ -3,6 +3,7 @@
 
 import { http, defineChain } from "viem";
 import { createConfig } from "wagmi";
+import { injected } from "@wagmi/connectors";
 
 export const mezoTestnet = defineChain({
 	id: 31611,
@@ -18,6 +19,7 @@ export const mezoTestnet = defineChain({
 
 export const wagmiConfig = createConfig({
 	chains: [mezoTestnet],
+  connectors: [injected()],
 	transports: {
 		[mezoTestnet.id]: http(mezoTestnet.rpcUrls.default.http[0]),
 	},

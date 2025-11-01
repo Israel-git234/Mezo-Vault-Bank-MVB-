@@ -1,21 +1,171 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useAccount } from "wagmi";
+import type { Address } from "viem";
 import Header from "@/components/Header";
+import Sidebar from "@/components/Sidebar";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import { Calculator, TrendingDown, Shield } from "lucide-react";
 import { formatBTC, formatMUSD } from "@/lib/utils";
+import {
+  useDepositCollateral,
+  useBorrowMUSD,
+  useGetPosition,
+  useGetCollateralRatio,
+  btcToSatoshis,
+  usdToUnits,
+  formatBTCPrice,
+  useRepayLoan,
+  useWithdrawCollateral,
+} from "@/lib/contracts";
+import TxBanner from "@/components/TxBanner";
+import BottomSheet from "@/components/BottomSheet";
+import { useToast } from "@/components/Toast";
+import { appendHistory } from "@/lib/history";
 
 export default function BorrowPage() {
+  const { address } = useAccount();
+  const [btcInput, setBtcInput] = useState<string>("");
+  const [borrowInput, setBorrowInput] = useState<string>("");
+  const [repayInput, setRepayInput] = useState<string>("");
+  const [withdrawInput, setWithdrawInput] = useState<string>("");
+  const [btcPriceUsd, setBtcPriceUsd] = useState<number>(67500);
+  const [termMonths, setTermMonths] = useState<number>(6);
+  const [calcOpen, setCalcOpen] = useState<boolean>(false);
+  const { toast } = useToast();
+
+  const { deposit, isPending: isDepositing, isSuccess: depositSuccess, error: depositError } = useDepositCollateral();
+  const { borrow, isPending: isBorrowing, isSuccess: borrowSuccess, error: borrowError } = useBorrowMUSD();
+  const { repay, isPending: isRepaying, isSuccess: repaySuccess, error: repayError } = useRepayLoan();
+  const { withdraw, isPending: isWithdrawing, isSuccess: withdrawSuccess, error: withdrawError } = useWithdrawCollateral();
+  const depositState = depositError ? "error" : isDepositing ? "pending" : depositSuccess ? "success" : "idle";
+  const borrowState = borrowError ? "error" : isBorrowing ? "pending" : borrowSuccess ? "success" : "idle";
+  const repayState = repayError ? "error" : isRepaying ? "pending" : repaySuccess ? "success" : "idle";
+  const withdrawState = withdrawError ? "error" : isWithdrawing ? "pending" : withdrawSuccess ? "success" : "idle";
+
+  const priceBig = useMemo(() => formatBTCPrice(btcPriceUsd), [btcPriceUsd]);
+  const userAddr = address as any;
+  const { position, isLoading: posLoading, refetch } = useGetPosition(userAddr as Address | undefined);
+  const { ratio } = useGetCollateralRatio(userAddr as Address | undefined, priceBig);
+
   const loanStats = {
     currentRate: 3.5,
-    maxBorrow: 10000,
     collateralRatio: 150,
   };
 
+  const collateralValueUsd = useMemo(() => {
+    const btc = parseFloat(btcInput || "0");
+    return btc * btcPriceUsd;
+  }, [btcInput, btcPriceUsd]);
+
+  useEffect(() => {
+    if (depositSuccess || borrowSuccess || repaySuccess || withdrawSuccess) {
+      setTimeout(() => refetch(), 1200);
+    }
+  }, [depositSuccess, borrowSuccess, repaySuccess, withdrawSuccess, refetch]);
+
+  // Price polling
+  useEffect(() => {
+    let mounted = true;
+    const fetchPrice = async () => {
+      try {
+        const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
+        const data = await res.json();
+        if (mounted && data?.bitcoin?.usd) setBtcPriceUsd(Number(data.bitcoin.usd));
+      } catch {}
+    };
+    fetchPrice();
+    const id = setInterval(fetchPrice, 30000);
+    return () => { mounted = false; clearInterval(id); };
+  }, []);
+
+  // Toasts + local history
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (depositSuccess) {
+      toast({ title: "Collateral deposited", variant: "success" });
+      const btc = parseFloat(btcInput || "0");
+      if (btc > 0) appendHistory({ type: "deposit", amount: btc });
+      if (navigator.vibrate) navigator.vibrate(10);
+    }
+  }, [depositSuccess]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (borrowSuccess) {
+      toast({ title: "Borrow successful", variant: "success" });
+      const usd = parseFloat(borrowInput || "0");
+      if (usd > 0) appendHistory({ type: "borrow", amount: usd });
+      if (navigator.vibrate) navigator.vibrate(10);
+    }
+  }, [borrowSuccess]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (repaySuccess) {
+      toast({ title: "Repayment confirmed", variant: "success" });
+      const usd = parseFloat(repayInput || "0");
+      if (usd > 0) appendHistory({ type: "repay", amount: usd });
+      if (navigator.vibrate) navigator.vibrate(10);
+    }
+  }, [repaySuccess]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (withdrawSuccess) {
+      toast({ title: "Withdrawal confirmed", variant: "success" });
+      const btc = parseFloat(withdrawInput || "0");
+      if (btc > 0) appendHistory({ type: "withdraw", amount: btc });
+      if (navigator.vibrate) navigator.vibrate(10);
+    }
+  }, [withdrawSuccess]);
+
+  // Derived borrow capacity and after-borrow ratio
+  const collateralBtc = position ? Number(position.collateral) / 1e8 : 0;
+  const borrowedUsd = position ? Number(position.borrowed) / 100 : 0;
+  const interestUsd = position ? Number(position.interestOwed) / 100 : 0;
+  const totalDebtUsd = borrowedUsd + interestUsd;
+  const collateralUsd = collateralBtc * btcPriceUsd;
+  const maxBorrowableUsd = Math.max(0, collateralUsd * (100 / loanStats.collateralRatio) - totalDebtUsd);
+  const borrowDesired = parseFloat(borrowInput || "0");
+  const afterBorrowDebt = Math.max(0, totalDebtUsd + (isNaN(borrowDesired) ? 0 : borrowDesired));
+  const afterBorrowRatio = afterBorrowDebt > 0 ? (collateralUsd / afterBorrowDebt) * 100 : 0;
+
+  const monthlyInterest = (borrowDesired * (loanStats.currentRate / 100)) / 12;
+
+  const handleDeposit = async () => {
+    const btc = parseFloat(btcInput);
+    if (!btc || btc <= 0) return;
+    const btcAmt = btcToSatoshis(btc);
+    deposit(btcAmt, priceBig);
+  };
+
+  const handleBorrow = async () => {
+    const usd = parseFloat(borrowInput);
+    if (!usd || usd <= 0) return;
+    const borrowAmt = usdToUnits(usd);
+    borrow(borrowAmt, priceBig);
+  };
+
+  const handleRepay = async () => {
+    const usd = parseFloat(repayInput);
+    if (!usd || usd <= 0) return;
+    const repayAmt = usdToUnits(usd);
+    repay(repayAmt);
+  };
+
+  const handleWithdraw = async () => {
+    const btc = parseFloat(withdrawInput);
+    if (!btc || btc <= 0) return;
+    const amt = btcToSatoshis(btc);
+    withdraw(amt, priceBig);
+  };
+
   return (
-    <div className="min-h-screen">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="min-h-screen flex">
+      <Sidebar />
+      <div className="flex-1 min-w-0">
+        <Header />
+        <main className="container mx-auto px-4 py-8 max-w-7xl animate-fade-in">
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2 gradient-text">Borrow MUSD</h1>
@@ -39,12 +189,14 @@ export default function BorrowPage() {
                 <div>
                   <label className="block text-sm font-medium mb-2">Amount (BTC)</label>
                   <div className="relative">
-                    <input
-                      type="number"
-                      placeholder="0.0"
-                      step="0.00000001"
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
+                  <input
+                    type="number"
+                    placeholder="0.0"
+                    step="0.00000001"
+                    value={btcInput}
+                    onChange={(e) => setBtcInput(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
                     <Button
                       variant="ghost"
                       size="sm"
@@ -59,18 +211,19 @@ export default function BorrowPage() {
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">BTC Price</p>
-                    <p className="text-lg font-semibold">$67,500</p>
+                    <p className="text-lg font-semibold">${btcPriceUsd.toLocaleString('en-US')}</p>
                   </div>
                   <div className="flex-1">
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Collateral Value</p>
-                    <p className="text-lg font-semibold">$0.00</p>
+                    <p className="text-lg font-semibold">${collateralValueUsd.toLocaleString('en-US', { maximumFractionDigits: 2 })}</p>
                   </div>
                 </div>
 
-                <Button className="w-full" size="lg" isLoading={false}>
+                <Button className="w-full" size="lg" isLoading={isDepositing} onClick={handleDeposit}>
                   <Shield className="w-5 h-5 mr-2" />
                   Deposit Collateral
                 </Button>
+                <TxBanner state={depositState} successText="Collateral deposited" pendingText="Confirm deposit in wallet..." />
               </div>
             </Card>
 
@@ -86,26 +239,45 @@ export default function BorrowPage() {
                 <div>
                   <label className="block text-sm font-medium mb-2">Amount (MUSD)</label>
                   <div className="relative">
-                    <input
-                      type="number"
-                      placeholder="0.0"
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
+                  <input
+                    type="number"
+                    placeholder="0.0"
+                    value={borrowInput}
+                    onChange={(e) => setBorrowInput(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
                     <Button
                       variant="ghost"
                       size="sm"
                       className="absolute right-2 top-1/2 -translate-y-1/2"
+                      onClick={() => setBorrowInput(maxBorrowableUsd.toFixed(2))}
                     >
                       MAX
                     </Button>
                   </div>
-                  <p className="text-sm text-gray-500 mt-2">Max borrow: {formatMUSD(loanStats.maxBorrow)}</p>
+                  <p className="text-sm text-gray-500 mt-2">Max borrow: {formatMUSD(maxBorrowableUsd)}</p>
+                </div>
+
+                {/* Slider */}
+                <div className="px-1">
+                  <input
+                    type="range"
+                    min={0}
+                    max={Math.max(0, Math.floor(maxBorrowableUsd))}
+                    value={Math.max(0, Math.min(Number(borrowInput || 0), Math.floor(maxBorrowableUsd)))}
+                    onChange={(e) => setBorrowInput(String(e.target.value))}
+                    className="w-full accent-[hsl(var(--primary))]"
+                  />
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>0</span>
+                    <span>{formatMUSD(maxBorrowableUsd)}</span>
+                  </div>
                 </div>
 
                 <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Current Collateral Ratio</span>
-                    <span className="text-sm font-semibold">N/A</span>
+                    <span className="text-sm font-semibold">{ratio ? `${Number(ratio)}%` : "N/A"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Required Ratio</span>
@@ -113,14 +285,93 @@ export default function BorrowPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">After Borrow</span>
-                    <span className="text-sm font-semibold">N/A</span>
+                    <span className="text-sm font-semibold">{afterBorrowDebt > 0 ? `${afterBorrowRatio.toFixed(0)}%` : "—"}</span>
+                  </div>
+                  {/* Ratio bar */}
+                  <div className="h-2 rounded-full overflow-hidden bg-black/20 mt-2">
+                    <div
+                      className={"h-full transition-all " + (afterBorrowRatio >= 200 ? "bg-green-500" : afterBorrowRatio >= 150 ? "bg-yellow-500" : "bg-red-500")}
+                      style={{ width: `${Math.max(0, Math.min(100, afterBorrowRatio / 3))}%` }}
+                    />
                   </div>
                 </div>
 
-                <Button className="w-full" size="lg" variant="secondary">
+                {/* Terms */}
+                <div className="flex items-center gap-2">
+                  {[3, 6, 12].map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setTermMonths(m)}
+                      className={"px-3 py-2 rounded-lg border text-sm " + (termMonths === m ? "bg-[hsl(var(--card))] border-white/20" : "border-white/10 hover:bg-white/5")}
+                    >
+                      {m} mo
+                    </button>
+                  ))}
+                  <div className="ml-auto text-sm text-gray-600 dark:text-gray-400">
+                    Est. monthly interest: <span className="font-semibold">{formatMUSD(monthlyInterest || 0)}</span>
+                  </div>
+                </div>
+
+                <Button className="w-full" size="lg" variant="secondary" isLoading={isBorrowing} onClick={handleBorrow}>
                   <TrendingDown className="w-5 h-5 mr-2" />
                   Borrow MUSD
                 </Button>
+                <TxBanner state={borrowState} successText="Borrow successful" pendingText="Confirm borrow in wallet..." />
+              </div>
+            </Card>
+
+            <Card>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold mb-2">Repay Loan</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Repay your outstanding MUSD balance. Interest is repaid before principal.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Amount to Repay (MUSD)</label>
+                  <input
+                    type="number"
+                    placeholder="0.0"
+                    value={repayInput}
+                    onChange={(e) => setRepayInput(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <Button className="w-full" size="lg" variant="secondary" isLoading={isRepaying} onClick={handleRepay}>
+                  Repay Loan
+                </Button>
+                <TxBanner state={repayState} successText="Repayment confirmed" pendingText="Confirm repay in wallet..." />
+              </div>
+            </Card>
+
+            <Card>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold mb-2">Withdraw Collateral</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Withdraw a portion of your collateral if your position remains above the 150% ratio.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Amount to Withdraw (BTC)</label>
+                  <input
+                    type="number"
+                    placeholder="0.0"
+                    step="0.00000001"
+                    value={withdrawInput}
+                    onChange={(e) => setWithdrawInput(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <Button className="w-full" size="lg" isLoading={isWithdrawing} onClick={handleWithdraw}>
+                  Withdraw Collateral
+                </Button>
+                <TxBanner state={withdrawState} successText="Withdrawal confirmed" pendingText="Confirm withdraw in wallet..." />
               </div>
             </Card>
           </div>
@@ -132,15 +383,15 @@ export default function BorrowPage() {
               <div className="space-y-4">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Collateral</p>
-                  <p className="text-xl font-bold">{formatBTC(0)}</p>
+                  <p className="text-xl font-bold">{position ? formatBTC(Number(position.collateral) / 1e8) : formatBTC(0)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Borrowed</p>
-                  <p className="text-xl font-bold">{formatMUSD(0)}</p>
+                  <p className="text-xl font-bold">{position ? formatMUSD(Number(position.borrowed) / 100) : formatMUSD(0)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Collateral Ratio</p>
-                  <p className="text-xl font-bold">--</p>
+                  <p className="text-xl font-bold">{ratio ? `${Number(ratio)}%` : "--"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Interest Rate</p>
@@ -168,7 +419,7 @@ export default function BorrowPage() {
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Estimate your borrowing capacity and monthly payments.
                   </p>
-                  <Button variant="ghost" size="sm" className="mt-2">
+                  <Button variant="ghost" size="sm" className="mt-2" onClick={() => setCalcOpen(true)}>
                     Open Calculator
                   </Button>
                 </div>
@@ -176,7 +427,39 @@ export default function BorrowPage() {
             </Card>
           </div>
         </div>
-      </main>
+        {/* BottomSheet Calculator */}
+        <BottomSheet open={calcOpen} onClose={() => setCalcOpen(false)} title="Loan Calculator">
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Collateral (BTC)</p>
+                <p className="text-xl font-bold">{formatBTC(collateralBtc)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Collateral (USD)</p>
+                <p className="text-xl font-bold">{formatMUSD(collateralUsd)}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Max Borrow</p>
+                <p className="text-xl font-bold">{formatMUSD(maxBorrowableUsd)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">After-borrow Ratio</p>
+                <p className="text-xl font-bold">{afterBorrowDebt ? `${afterBorrowRatio.toFixed(0)}%` : "—"}</p>
+              </div>
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Monthly interest at {loanStats.currentRate}% APR for {termMonths} months: <span className="font-semibold">{formatMUSD(monthlyInterest)}</span>
+            </div>
+            <div className="flex gap-3">
+              <Button className="flex-1" onClick={() => setCalcOpen(false)}>Done</Button>
+            </div>
+          </div>
+        </BottomSheet>
+        </main>
+      </div>
     </div>
   );
 }

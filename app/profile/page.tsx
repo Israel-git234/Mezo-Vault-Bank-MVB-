@@ -64,7 +64,7 @@ export default function ProfilePage() {
                   <span className="font-medium">Verified</span>
                 </div>
               ) : (
-                <Button variant="primary" size="sm">
+                <Button variant="default" size="sm">
                   Verify Passport
                 </Button>
               )}
@@ -260,4 +260,6 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+
 
