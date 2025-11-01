@@ -99,3 +99,5 @@ artifacts/
 
 # OS
 Thumbs.db
+
+.vercel

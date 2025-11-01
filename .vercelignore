@@ -1,0 +1,19 @@
+# Contracts and Hardhat (not needed for frontend)
+contracts/
+hardhat.config.js
+cache/
+artifacts/
+.idea/
+
+# Development files
+*.md
+!README.md
+
+# Tests (not needed for production)
+tests/
+vitest.config.ts
+vitest.setup.ts
+
+# Git
+.git/
+

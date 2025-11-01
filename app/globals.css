@@ -146,7 +146,7 @@ body {
 }
 .animate-glow-pulse { animation: glowPulse 2s ease-in-out infinite; }
 
-/* Compatibility alias for Lovable classes */
+/* Compatibility alias for UI animation classes */
 .animate-glow { animation: glowPulse 2s ease-in-out infinite; }
 
 @keyframes slideUp {

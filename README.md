@@ -4,6 +4,12 @@
 
 A Bitcoin-backed financial platform built on the Mezo Network for the **Mezo Hackathon - Financial Access & Mass Adoption Track**.
 
+## 🌐 **Live Demo**
+
+**👉 [Try it now on Vercel](https://mezo-bank-vaults-8t7199xq9-israels-projects-59a1ee78.vercel.app)**
+
+*Make sure to connect MetaMask to Mezo Testnet (Chain ID: 31611)*
+
 ---
 
 ## 🎯 Overview
@@ -23,17 +29,11 @@ MezoBank Vaults transforms Bitcoin from a passive store of value into a producti
 - MetaMask wallet
 - Mezo Testnet configured in MetaMask
 
-### Installation
+### Local Setup
 
 ```bash
-# Clone the repository
-git clone 
-cd mezo-bank-vaults
-
-# Install dependencies
+# From the project directory
 npm install
-
-# Start development server
 npm run dev
 ```
 
