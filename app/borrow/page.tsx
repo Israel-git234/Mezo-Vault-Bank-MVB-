@@ -24,7 +24,7 @@ import TxBanner from "@/components/TxBanner";
 import BottomSheet from "@/components/BottomSheet";
 import { useToast } from "@/components/Toast";
 import { appendHistory } from "@/lib/history";
-import { addBorrowedToAvailable, deductForRepay } from "@/lib/state";
+import { addBorrowedToAvailable, deductForRepay, addMockBtcCollateral, removeMockBtcCollateral, getAppState } from "@/lib/state";
 
 export default function BorrowPage() {
   const { address } = useAccount();
@@ -94,6 +94,7 @@ export default function BorrowPage() {
       toast({ title: "Collateral deposited", variant: "success" });
       const btc = parseFloat(btcInput || "0");
       if (btc > 0) appendHistory({ type: "deposit", amount: btc });
+      if (btc > 0) addMockBtcCollateral(btc); // mock fallback for hackathon UX
       setBtcInput(""); // Clear input on success
       if (navigator.vibrate) navigator.vibrate(10);
     }
@@ -138,6 +139,7 @@ export default function BorrowPage() {
       toast({ title: "Withdrawal confirmed", variant: "success" });
       const btc = parseFloat(withdrawInput || "0");
       if (btc > 0) appendHistory({ type: "withdraw", amount: btc });
+      if (btc > 0) removeMockBtcCollateral(btc); // mock fallback for hackathon UX
       setWithdrawInput(""); // Clear input on success
       if (navigator.vibrate) navigator.vibrate(10);
     }
@@ -149,6 +151,7 @@ export default function BorrowPage() {
 
   // Derived borrow capacity and after-borrow ratio
   const collateralBtc = position ? Number(position.collateral) / 1e8 : 0;
+  const displayCollateralBtc = collateralBtc > 0 ? collateralBtc : (getAppState().btcCollateralMock || 0);
   const borrowedUsd = position ? Number(position.borrowed) / 100 : 0;
   const interestUsd = position ? Number(position.interestOwed) / 100 : 0;
   const totalDebtUsd = borrowedUsd + interestUsd;
@@ -439,7 +442,7 @@ export default function BorrowPage() {
               <div className="space-y-4">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Collateral</p>
-                  <p className="text-xl font-bold">{position ? formatBTC(Number(position.collateral) / 1e8) : formatBTC(0)}</p>
+                  <p className="text-xl font-bold">{formatBTC(displayCollateralBtc)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Borrowed</p>
@@ -489,7 +492,7 @@ export default function BorrowPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Collateral (BTC)</p>
-                <p className="text-xl font-bold">{formatBTC(collateralBtc)}</p>
+                <p className="text-xl font-bold">{formatBTC(displayCollateralBtc)}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Collateral (USD)</p>

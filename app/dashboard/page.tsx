@@ -39,6 +39,7 @@ export default function DashboardPage() {
   }, [position]);
 
   const collateralBtc = position ? Number(position.collateral) / 1e8 : 0;
+  const displayCollateralBtc = collateralBtc > 0 ? collateralBtc : (getAppState().btcCollateralMock || 0);
   const borrowedUsd = position ? Number(position.borrowed) / 100 : 0;
   const interestUsd = position ? Number(position.interestOwed) / 100 : 0;
   const totalDebtUsd = borrowedUsd + interestUsd;
@@ -105,7 +106,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <BalanceCard
             title="BTC Balance"
-            amount={`${collateralBtc.toLocaleString('en-US', { maximumFractionDigits: 8 })}`}
+            amount={`${displayCollateralBtc.toLocaleString('en-US', { maximumFractionDigits: 8 })}`}
             currency="BTC"
             icon={<Wallet className="h-5 w-5" />}
             variant="bitcoin"

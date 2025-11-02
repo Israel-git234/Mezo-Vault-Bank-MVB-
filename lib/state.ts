@@ -9,6 +9,7 @@ export interface AppState {
   lastYieldTs: number; // timestamp of last yield accrual
   autoRepayEnabled: boolean;
   credoScore: number; // display score (650 default)
+  btcCollateralMock?: number; // simulated BTC collateral (fallback for hackathon UX)
 }
 
 const KEY = "mbv_app_state";
@@ -24,14 +25,15 @@ export function getAppState(): AppState {
       lastYieldTs: 0,
       autoRepayEnabled: false,
       credoScore: 650,
+      btcCollateralMock: 0,
     };
   }
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return { musdAvailable: 0, vaultBalance: 0, vaultAccrued: 0, lastYieldTs: 0, autoRepayEnabled: false, credoScore: 650 };
+    if (!raw) return { musdAvailable: 0, vaultBalance: 0, vaultAccrued: 0, lastYieldTs: 0, autoRepayEnabled: false, credoScore: 650, btcCollateralMock: 0 };
     return JSON.parse(raw) as AppState;
   } catch {
-    return { musdAvailable: 0, vaultBalance: 0, vaultAccrued: 0, lastYieldTs: 0, autoRepayEnabled: false, credoScore: 650 };
+    return { musdAvailable: 0, vaultBalance: 0, vaultAccrued: 0, lastYieldTs: 0, autoRepayEnabled: false, credoScore: 650, btcCollateralMock: 0 };
   }
 }
 
@@ -118,5 +120,22 @@ export function reinvestAccrued() {
   s.vaultAccrued = 0;
   setAppState(s);
 }
+
+// --- Hackathon UX helpers: mock BTC collateral tracking ---
+export function addMockBtcCollateral(btc: number) {
+  const s = getAppState();
+  s.btcCollateralMock = Math.max(0, (s.btcCollateralMock || 0) + btc);
+  // small Credo reward for deposit
+  s.credoScore = Math.min(1000, s.credoScore + 5);
+  setAppState(s);
+}
+
+export function removeMockBtcCollateral(btc: number) {
+  const s = getAppState();
+  s.btcCollateralMock = Math.max(0, (s.btcCollateralMock || 0) - btc);
+  setAppState(s);
+}
+
+
 
 
