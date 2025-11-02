@@ -15,8 +15,7 @@ import {
   DollarSign, 
   ArrowUpRight,
   ArrowDownRight,
-  Award,
-  RefreshCw
+  Award
 } from "lucide-react";
 import { useGetPosition } from "@/lib/contracts";
 import { getAppState, accrueYield } from "@/lib/state";
@@ -70,8 +69,13 @@ export default function DashboardPage() {
     accrueYield(0.08);
   }, []);
 
-  // Live activity via events
-  
+  // Auto-refresh position silently every 10s when connected
+  useEffect(() => {
+    if (!isConnected) return;
+    refetchPosition(); // initial fetch
+    const id = setInterval(() => refetchPosition(), 10000);
+    return () => clearInterval(id);
+  }, [isConnected, refetchPosition]);
 
   const quickActions = [
     { name: "Deposit BTC", href: "/borrow", color: "bg-indigo-600", icon: ArrowDownRight },
@@ -94,22 +98,14 @@ export default function DashboardPage() {
               Here&apos;s your account overview
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => refetchPosition()}
-            disabled={isLoadingPosition}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingPosition ? 'animate-spin' : ''}`} />
-            {isLoadingPosition ? "Refreshing..." : "Refresh"}
-          </Button>
+          {/* Silent auto-refresh; no manual button */}
         </div>
 
         {/* Account Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <BalanceCard
             title="BTC Balance"
-            amount={isLoadingPosition ? "Loading..." : `${collateralBtc.toLocaleString('en-US', { maximumFractionDigits: 8 })}`}
+            amount={`${collateralBtc.toLocaleString('en-US', { maximumFractionDigits: 8 })}`}
             currency="BTC"
             icon={<Wallet className="h-5 w-5" />}
             variant="bitcoin"
