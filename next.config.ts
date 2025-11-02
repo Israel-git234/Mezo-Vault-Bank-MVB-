@@ -1,23 +1,21 @@
 import type { NextConfig } from "next";
 
-const isProd = process.env.NODE_ENV === "production";
-
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   async headers() {
+    // Relaxed CSP to allow Next.js inline boot scripts and 3rd-party RPC/WebSocket connections.
+    // If you need a stricter CSP later, add nonces/hashes and tighten connect-src.
     const csp = [
-      "default-src 'self'",
-      // In dev, allow 'unsafe-eval' to avoid CSP blocking tooling; disabled in production
-      `script-src 'self'${isProd ? '' : " 'unsafe-eval' 'unsafe-inline'"} https: http:`,
+      "default-src 'self' data: blob: https: http:",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https: http:",
       "style-src 'self' 'unsafe-inline' https:",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https:",
-      "connect-src 'self' https: ws: wss:",
+      "connect-src *",
       "frame-ancestors 'self'",
       "form-action 'self'",
       "object-src 'none'",
       "base-uri 'self'",
-      "upgrade-insecure-requests",
     ].join("; ");
 
     return [
