@@ -31,7 +31,7 @@ export function useDepositCollateral() {
   const { writeContract, isPending, isSuccess, error } = useWriteContract();
   
   const deposit = (btcAmount: bigint, btcPrice: bigint) => {
-    if (btcAmount <= 0n) {
+    if (btcAmount <= BigInt(0)) {
       throw new Error('BTC amount must be greater than 0');
     }
     
@@ -58,7 +58,7 @@ export function useBorrowMUSD() {
   const { writeContract, isPending, isSuccess, error } = useWriteContract();
   
   const borrow = (amount: bigint, btcPrice: bigint) => {
-    if (amount <= 0n) {
+    if (amount <= BigInt(0)) {
       throw new Error('Borrow amount must be greater than 0');
     }
     
@@ -80,7 +80,7 @@ export function useRepayLoan() {
   const { writeContract, isPending, isSuccess, error } = useWriteContract();
   
   const repay = (amount: bigint) => {
-    if (amount <= 0n) {
+    if (amount <= BigInt(0)) {
       throw new Error('Repay amount must be greater than 0');
     }
     
@@ -102,7 +102,7 @@ export function useWithdrawCollateral() {
   const { writeContract, isPending, isSuccess, error } = useWriteContract();
   
   const withdraw = (amount: bigint, btcPrice: bigint) => {
-    if (amount <= 0n) {
+    if (amount <= BigInt(0)) {
       throw new Error('Withdraw amount must be greater than 0');
     }
     
