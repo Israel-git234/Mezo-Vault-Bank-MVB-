@@ -6,7 +6,7 @@ A Bitcoin-backed financial platform built on the Mezo Network for the **Mezo Hac
 
 ## 🌐 **Live Demo**
 
-**👉 [Try it now on Vercel](https://mezo-bank-vaults-8t7199xq9-israels-projects-59a1ee78.vercel.app)**
+**👉 [Try it now on Vercel](mezo-bank-vaults.vercel.app)**
 
 *Make sure to connect MetaMask to Mezo Testnet (Chain ID: 31611)*
 
@@ -47,30 +47,10 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 🌐 Mezo Testnet Setup
 
-Add Mezo Testnet to MetaMask:
 
-| Field | Value git
-|-------|-------|
-| **Network Name** | Mezo Testnet |
-| **RPC URL** | https://rpc.test.mezo.org |
-| **Chain ID** | 31611 |
-| **Currency Symbol** | BTC |
-| **Block Explorer** | https://explorer.test.mezo.org |
-
-**Get Testnet BTC:** [Mezo Faucet](https://faucet.test.mezo.org)
 
 ---
 
-## 📋 Deployed Contracts
-
-### VaultManager Contract ✅
-- **Address:** `0xD93111E3C9E9C68C1BaE07F1E3c5f3ce483c9b8f`
-- **Network:** Mezo Testnet (Chain ID: 31611)
-- **Explorer:** [View on Mezo Explorer](https://explorer.test.mezo.org/address/0xD93111E3C9E9C68C1BaE07F1E3c5f3ce483c9b8f)
-
-### MUSD Token (Official)
-- **Address:** `0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503`
-- **Network:** Mezo Testnet
 
 ---
 
@@ -199,10 +179,17 @@ mezo-bank-vaults/
 ### Financial Access & Mass Adoption ✅
 
 **Target Users:**
-- 2.5 billion underbanked people globally
-- Bitcoin holders needing liquidity
-- Users in countries with unstable currencies
-- Anyone locked out of traditional finance
+**2.5 billion underbanked people globally**
+Experience Level: Beginner (banking-app UX, not DeFi complexity)
+Region: Emerging markets (Africa, Latin America, Southeast Asia)
+Platform: Mobile-first (2.5B unbanked primarily use mobile)
+Pain Point: No access to credit, savings, or payment infrastructure
+
+Because Mezo is a Bitcoin Layer 2 with low fees and high speed, it enables real adoption in emerging markets.
+Users only need a phone and crypto wallet—no ID or bank account required to access credit and savings tools.
+**Bitcoin holders needing liquidity**
+**Users in countries with unstable currencies**
+Anyone locked out of traditional finance
 
 **Adoption Strategy:**
 - Banking-app familiar UX
@@ -248,30 +235,6 @@ mezo-bank-vaults/
 
 ---
 
-## 📱 Demo Instructions
-
-### For Judges:
-
-1. **Visit:** `http://localhost:3000` (after running `npm run dev`)
-
-2. **First-time User:**
-   - See welcome screen
-   - Click "Get Started"
-   - Connect MetaMask (Mezo Testnet)
-   - View features overview
-   - Enter dashboard
-
-3. **Explore Features:**
-   - View account balances
-   - Click "Deposit BTC" → Borrow page
-   - Click "Earn Yield" → Vaults page
-   - Click "Send Payment" → Spend page
-   - Navigate via header menu
-
-4. **Check Smart Contract:**
-   - View on [Mezo Explorer](https://explorer.test.mezo.org/address/0xD93111E3C9E9C68C1BaE07F1E3c5f3ce483c9b8f)
-   - See deployed VaultManager
-   - Verify contract is live
 
 ---
 
@@ -281,6 +244,9 @@ mezo-bank-vaults/
 - **Collateralized:** Over-collateralization protects lenders
 - **Fixed rates:** No oracle manipulation risk
 - **Liquidation mechanism:** Automatic position management
+
+If BTC collateral value falls below the required ratio, the VaultManager contract automatically triggers liquidation to maintain solvency and protect the system.
+User has two options:
 - **Mezo Network:** Inherits Bitcoin's security
 
 ---
@@ -315,15 +281,11 @@ mezo-bank-vaults/
 
 ## 🤝 Contributing
 
-This project was built for the Mezo Hackathon. Feedback and suggestions welcome!
+ Feedback and suggestions welcome!
 
 ---
 
-## 📄 License
 
-MIT License - See LICENSE file for details
-
----
 
 ## 🔗 Links
 
@@ -335,19 +297,18 @@ MIT License - See LICENSE file for details
 ---
 
 ## 👥 Team
+Israel Mathivha
+Innocent Inkanyiso
+Faresa Malitsha
+Phuluwa Zwiande
+Tosca Radzilani
 
 Built with ❤️ for the Mezo Hackathon
 
 **Track:** Financial Access & Mass Adoption  
 **Goal:** Make Bitcoin useful for everyday life
 
----
 
-## 📞 Contact
-
-For questions or demo requests, please reach out via the hackathon platform.
-
----
 
 **🎉 Thank you for reviewing MezoBank Vaults!**
 
