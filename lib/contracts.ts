@@ -28,11 +28,16 @@ export function useDepositCollateral() {
   const { writeContract, isPending, isSuccess, error } = useWriteContract();
   
   const deposit = (btcAmount: bigint, btcPrice: bigint) => {
+    // Convert satoshis (8 decimals) to wei (18 decimals) for native BTC
+    // Mezo Testnet native currency uses 18 decimals
+    const valueInWei = btcAmount * BigInt(1e10); // 1e8 satoshis * 1e10 = 1e18 wei
+    
     writeContract({
       address: VAULT_MANAGER_ADDRESS,
       abi: VaultManagerABI,
       functionName: 'depositCollateral',
       args: [btcAmount, btcPrice],
+      value: valueInWei, // Send native BTC with the transaction
     });
   };
   
