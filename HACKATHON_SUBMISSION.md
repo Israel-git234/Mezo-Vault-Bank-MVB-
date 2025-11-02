@@ -232,12 +232,12 @@ https://github.com/[your-username]/mezo-bank-vaults
 ## **11. Link to Presentation**
 
 **Pitch Deck:**
-- **Slide Deck:** [Google Slides/Pitch.com URL] (to be created)
+- **Slide Deck:** https://mezovaultheckathonpresentation.lovable.app/
 
-**Recommended:**
-1. Create Google Slides from `PITCH_PRESENTATION.md` outline
-2. Share link (public or "anyone with link can view")
-3. Include in submission
+✅ **Live Presentation (Lovable):**
+- Fully interactive presentation with all slides
+- Accessible via public link
+- Includes: Problem statement, solution overview, user scenarios, mission statement
 
 ---
 
@@ -266,8 +266,8 @@ https://mezo-bank-vaults-8t7199xq9-israels-projects-59a1ee78.vercel.app
 
 - [ ] Update Team Info section with real names/socials
 - [ ] Update GitHub repository URL
-- [ ] Record and upload demo video (2-3 min)
-- [ ] Create pitch deck slides (Google Slides)
+- [ ] Record and upload demo video (2-3 min) - *Transcript ready in `DEMO_VIDEO_TRANSCRIPT.md`*
+- [x] Create pitch deck slides (Lovable) ✅ - *Live at: https://mezovaultheckathonpresentation.lovable.app/*
 - [x] Deploy to Vercel and add testnet URL ✅
 - [ ] Test all features one final time on live URL
 - [ ] Update README.md with live demo link

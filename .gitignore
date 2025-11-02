@@ -82,6 +82,10 @@ yarn-error.log*
 # Vercel
 .vercel
 
+# Docs (exclude from Git)
+DEMO_VIDEO_GUIDE.md
+DEMO_VIDEO_TRANSCRIPT.md
+
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts

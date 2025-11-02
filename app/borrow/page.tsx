@@ -35,6 +35,7 @@ export default function BorrowPage() {
   const [btcPriceUsd, setBtcPriceUsd] = useState<number>(67500);
   const [termMonths, setTermMonths] = useState<number>(6);
   const [calcOpen, setCalcOpen] = useState<boolean>(false);
+  const [lastDepositAmount, setLastDepositAmount] = useState<number>(0);
   const { toast } = useToast();
 
   const { deposit, isPending: isDepositing, isSuccess: depositSuccess, error: depositError } = useDepositCollateral();
@@ -92,9 +93,13 @@ export default function BorrowPage() {
   useEffect(() => {
     if (depositSuccess) {
       toast({ title: "Collateral deposited", variant: "success" });
-      const btc = parseFloat(btcInput || "0");
-      if (btc > 0) appendHistory({ type: "deposit", amount: btc });
-      if (btc > 0) addMockBtcCollateral(btc); // mock fallback for hackathon UX
+      // Use stored amount or input value (input might be cleared)
+      const btc = lastDepositAmount > 0 ? lastDepositAmount : parseFloat(btcInput || "0");
+      if (btc > 0) {
+        appendHistory({ type: "deposit", amount: btc });
+        addMockBtcCollateral(btc); // mock fallback for hackathon UX
+        setLastDepositAmount(0); // Reset
+      }
       setBtcInput(""); // Clear input on success
       if (navigator.vibrate) navigator.vibrate(10);
     }
@@ -102,7 +107,7 @@ export default function BorrowPage() {
       const errorMsg = depositError.message || "Deposit failed";
       toast({ title: "Deposit failed", description: errorMsg, variant: "error" });
     }
-  }, [depositSuccess, depositError, toast, btcInput]);
+  }, [depositSuccess, depositError, toast, btcInput, lastDepositAmount]);
   
   useEffect(() => {
     if (borrowSuccess) {
@@ -150,13 +155,29 @@ export default function BorrowPage() {
   }, [withdrawSuccess, withdrawError, toast, withdrawInput]);
 
   // Derived borrow capacity and after-borrow ratio
-  const collateralBtc = position ? Number(position.collateral) / 1e8 : 0;
-  const displayCollateralBtc = collateralBtc > 0 ? collateralBtc : (getAppState().btcCollateralMock || 0);
+  // Use mock collateral if on-chain is zero (hackathon UX fallback)
+  const onChainCollateralBtc = position ? Number(position.collateral) / 1e8 : 0;
+  const mockCollateralBtc = getAppState().btcCollateralMock || 0;
+  const displayCollateralBtc = onChainCollateralBtc > 0 ? onChainCollateralBtc : mockCollateralBtc;
+  
   const borrowedUsd = position ? Number(position.borrowed) / 100 : 0;
   const interestUsd = position ? Number(position.interestOwed) / 100 : 0;
   const totalDebtUsd = borrowedUsd + interestUsd;
-  const collateralUsd = collateralBtc * btcPriceUsd;
+  // Use displayCollateralBtc (includes mock) for borrow calculations
+  const collateralUsd = displayCollateralBtc * btcPriceUsd;
   const maxBorrowableUsd = Math.max(0, collateralUsd * (100 / loanStats.collateralRatio) - totalDebtUsd);
+  
+  // Debug logging (remove in production)
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    console.log('[Borrow] Collateral:', {
+      onChain: onChainCollateralBtc,
+      mock: mockCollateralBtc,
+      display: displayCollateralBtc,
+      usd: collateralUsd,
+      maxBorrowable: maxBorrowableUsd,
+      price: btcPriceUsd
+    });
+  }
   const borrowDesired = parseFloat(borrowInput || "0");
   const afterBorrowDebt = Math.max(0, totalDebtUsd + (isNaN(borrowDesired) ? 0 : borrowDesired));
   const afterBorrowRatio = afterBorrowDebt > 0 ? (collateralUsd / afterBorrowDebt) * 100 : 0;
@@ -169,6 +190,8 @@ export default function BorrowPage() {
       toast({ title: "Invalid amount", description: "Please enter a valid BTC amount", variant: "error" });
       return;
     }
+    // Store amount before transaction for success handler
+    setLastDepositAmount(btc);
     try {
       const btcAmt = btcToSatoshis(btc);
       deposit(btcAmt, priceBig);
@@ -181,6 +204,14 @@ export default function BorrowPage() {
     const usd = parseFloat(borrowInput);
     if (!usd || usd <= 0) {
       toast({ title: "Invalid amount", description: "Please enter a valid MUSD amount", variant: "error" });
+      return;
+    }
+    if (maxBorrowableUsd <= 0) {
+      toast({ title: "No borrowing capacity", description: "Deposit collateral first to borrow", variant: "error" });
+      return;
+    }
+    if (usd > maxBorrowableUsd) {
+      toast({ title: "Exceeds borrow capacity", description: `Maximum borrowable: ${formatMUSD(maxBorrowableUsd)}`, variant: "error" });
       return;
     }
     try {
@@ -264,7 +295,7 @@ export default function BorrowPage() {
                       MAX
                     </Button>
                   </div>
-                  <p className="text-sm text-gray-500 mt-2">Available: 0.0 BTC</p>
+                  <p className="text-sm text-gray-500 mt-2">Available: {formatBTC(displayCollateralBtc)} BTC</p>
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -309,12 +340,25 @@ export default function BorrowPage() {
                       variant="ghost"
                       size="sm"
                       className="absolute right-2 top-1/2 -translate-y-1/2"
-                      onClick={() => setBorrowInput(maxBorrowableUsd.toFixed(2))}
+                      onClick={() => {
+                        if (maxBorrowableUsd > 0) {
+                          setBorrowInput(maxBorrowableUsd.toFixed(2));
+                        }
+                      }}
+                      disabled={maxBorrowableUsd <= 0}
                     >
                       MAX
                     </Button>
                   </div>
-                  <p className="text-sm text-gray-500 mt-2">Max borrow: {formatMUSD(maxBorrowableUsd)}</p>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Max borrow: {formatMUSD(maxBorrowableUsd)}
+                    {maxBorrowableUsd <= 0 && displayCollateralBtc > 0 && (
+                      <span className="text-yellow-500 ml-2">(Calculating...)</span>
+                    )}
+                    {maxBorrowableUsd <= 0 && displayCollateralBtc === 0 && (
+                      <span className="text-gray-500 ml-2">(Deposit collateral first)</span>
+                    )}
+                  </p>
                 </div>
 
                 {/* Slider */}
@@ -336,7 +380,13 @@ export default function BorrowPage() {
                 <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Current Collateral Ratio</span>
-                    <span className="text-sm font-semibold">{ratio ? `${Number(ratio)}%` : "N/A"}</span>
+                    <span className="text-sm font-semibold">
+                      {collateralUsd > 0 && totalDebtUsd > 0 
+                        ? `${((collateralUsd / totalDebtUsd) * 100).toFixed(0)}%`
+                        : collateralUsd > 0 
+                        ? "∞" 
+                        : "N/A"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Required Ratio</span>
@@ -371,7 +421,14 @@ export default function BorrowPage() {
                   </div>
                 </div>
 
-                <Button className="w-full" size="lg" variant="secondary" isLoading={isBorrowing} onClick={handleBorrow}>
+                <Button 
+                  className="w-full" 
+                  size="lg" 
+                  variant="secondary" 
+                  isLoading={isBorrowing} 
+                  onClick={handleBorrow}
+                  disabled={maxBorrowableUsd <= 0 || isBorrowing}
+                >
                   <TrendingDown className="w-5 h-5 mr-2" />
                   Borrow MUSD
                 </Button>
@@ -443,6 +500,9 @@ export default function BorrowPage() {
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Collateral</p>
                   <p className="text-xl font-bold">{formatBTC(displayCollateralBtc)}</p>
+                  {mockCollateralBtc > 0 && onChainCollateralBtc === 0 && (
+                    <p className="text-xs text-yellow-500 mt-1">Using local state</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Borrowed</p>
