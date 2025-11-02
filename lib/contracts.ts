@@ -20,6 +20,8 @@ export interface UserPosition {
   collateral: bigint; // satoshis
   borrowed: bigint;   // cents
   interestOwed: bigint; // cents
+  lastUpdate: bigint; // timestamp
+  btcPrice: bigint; // BTC price at time of last update (8 decimals)
 }
 
 /**
@@ -29,6 +31,10 @@ export function useDepositCollateral() {
   const { writeContract, isPending, isSuccess, error } = useWriteContract();
   
   const deposit = (btcAmount: bigint, btcPrice: bigint) => {
+    if (btcAmount <= 0n) {
+      throw new Error('BTC amount must be greater than 0');
+    }
+    
     // Convert satoshis (8 decimals) to wei (18 decimals) for native BTC
     // Mezo Testnet native currency uses 18 decimals
     const valueInWei = btcAmount * BigInt(1e10); // 1e8 satoshis * 1e10 = 1e18 wei
@@ -52,6 +58,10 @@ export function useBorrowMUSD() {
   const { writeContract, isPending, isSuccess, error } = useWriteContract();
   
   const borrow = (amount: bigint, btcPrice: bigint) => {
+    if (amount <= 0n) {
+      throw new Error('Borrow amount must be greater than 0');
+    }
+    
     writeContract({
       address: VAULT_MANAGER_ADDRESS,
       abi: VaultManagerABI,
@@ -70,6 +80,10 @@ export function useRepayLoan() {
   const { writeContract, isPending, isSuccess, error } = useWriteContract();
   
   const repay = (amount: bigint) => {
+    if (amount <= 0n) {
+      throw new Error('Repay amount must be greater than 0');
+    }
+    
     writeContract({
       address: VAULT_MANAGER_ADDRESS,
       abi: VaultManagerABI,
@@ -88,6 +102,10 @@ export function useWithdrawCollateral() {
   const { writeContract, isPending, isSuccess, error } = useWriteContract();
   
   const withdraw = (amount: bigint, btcPrice: bigint) => {
+    if (amount <= 0n) {
+      throw new Error('Withdraw amount must be greater than 0');
+    }
+    
     writeContract({
       address: VAULT_MANAGER_ADDRESS,
       abi: VaultManagerABI,
@@ -108,9 +126,33 @@ export function useGetPosition(userAddress?: Address) {
     abi: VaultManagerABI,
     functionName: 'getPosition',
     args: userAddress ? [userAddress] : undefined,
+    query: {
+      enabled: !!userAddress,
+      refetchInterval: 5000, // Refetch every 5 seconds
+    },
   });
 
-  return { position: data as unknown as UserPosition | undefined, isLoading, error, refetch };
+  // Handle tuple/struct return format
+  let position: UserPosition | undefined = undefined;
+  
+  if (data) {
+    // Contract returns a struct tuple: [collateral, borrowed, interestOwed, lastUpdate, btcPrice]
+    // Check if it's an array (tuple) or already an object
+    if (Array.isArray(data)) {
+      position = {
+        collateral: BigInt(data[0] || 0),
+        borrowed: BigInt(data[1] || 0),
+        interestOwed: BigInt(data[2] || 0),
+        lastUpdate: BigInt(data[3] || 0),
+        btcPrice: BigInt(data[4] || 0),
+      };
+    } else if (typeof data === 'object' && 'collateral' in data) {
+      // Already in object format
+      position = data as UserPosition;
+    }
+  }
+
+  return { position, isLoading, error, refetch };
 }
 
 /**

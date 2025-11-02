@@ -15,7 +15,8 @@ import {
   DollarSign, 
   ArrowUpRight,
   ArrowDownRight,
-  Award
+  Award,
+  RefreshCw
 } from "lucide-react";
 import { useGetPosition } from "@/lib/contracts";
 import { getAppState, accrueYield } from "@/lib/state";
@@ -26,9 +27,18 @@ export default function DashboardPage() {
   const router = useRouter();
   const [btcPrice, setBtcPrice] = useState<number>(67500);
 
-  const { position } = useGetPosition(address as Address | undefined);
+  const { position, isLoading: isLoadingPosition, refetch: refetchPosition } = useGetPosition(address as Address | undefined);
 
   // Derive user data from on-chain position
+  // Debug: Log position to see what we're getting
+  useEffect(() => {
+    if (position) {
+      console.log('Position data:', position);
+      console.log('Collateral (raw):', position.collateral);
+      console.log('Collateral (BTC):', Number(position.collateral) / 1e8);
+    }
+  }, [position]);
+
   const collateralBtc = position ? Number(position.collateral) / 1e8 : 0;
   const borrowedUsd = position ? Number(position.borrowed) / 100 : 0;
   const interestUsd = position ? Number(position.interestOwed) / 100 : 0;
@@ -77,18 +87,29 @@ export default function DashboardPage() {
         <Header />
         <main className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Welcome Banner */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Welcome back! 👋</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Here&apos;s your account overview
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Welcome back! 👋</h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Here&apos;s your account overview
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => refetchPosition()}
+            disabled={isLoadingPosition}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingPosition ? 'animate-spin' : ''}`} />
+            {isLoadingPosition ? "Refreshing..." : "Refresh"}
+          </Button>
         </div>
 
         {/* Account Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <BalanceCard
             title="BTC Balance"
-            amount={`${collateralBtc.toLocaleString('en-US', { maximumFractionDigits: 8 })}`}
+            amount={isLoadingPosition ? "Loading..." : `${collateralBtc.toLocaleString('en-US', { maximumFractionDigits: 8 })}`}
             currency="BTC"
             icon={<Wallet className="h-5 w-5" />}
             variant="bitcoin"

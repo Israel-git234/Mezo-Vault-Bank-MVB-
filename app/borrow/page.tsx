@@ -63,7 +63,13 @@ export default function BorrowPage() {
 
   useEffect(() => {
     if (depositSuccess || borrowSuccess || repaySuccess || withdrawSuccess) {
-      setTimeout(() => refetch(), 1200);
+      // Wait a bit longer for transaction to be mined and indexed
+      const timer = setTimeout(() => {
+        refetch();
+        // Refetch again after a delay to ensure data is updated
+        setTimeout(() => refetch(), 2000);
+      }, 3000);
+      return () => clearTimeout(timer);
     }
   }, [depositSuccess, borrowSuccess, repaySuccess, withdrawSuccess, refetch]);
 
@@ -88,35 +94,58 @@ export default function BorrowPage() {
       toast({ title: "Collateral deposited", variant: "success" });
       const btc = parseFloat(btcInput || "0");
       if (btc > 0) appendHistory({ type: "deposit", amount: btc });
+      setBtcInput(""); // Clear input on success
       if (navigator.vibrate) navigator.vibrate(10);
     }
-  }, [depositSuccess, toast, btcInput]);
+    if (depositError) {
+      const errorMsg = depositError.message || "Deposit failed";
+      toast({ title: "Deposit failed", description: errorMsg, variant: "error" });
+    }
+  }, [depositSuccess, depositError, toast, btcInput]);
+  
   useEffect(() => {
     if (borrowSuccess) {
       toast({ title: "Borrow successful", variant: "success" });
       const usd = parseFloat(borrowInput || "0");
       if (usd > 0) appendHistory({ type: "borrow", amount: usd });
       if (usd > 0) addBorrowedToAvailable(usd);
+      setBorrowInput(""); // Clear input on success
       if (navigator.vibrate) navigator.vibrate(10);
     }
-  }, [borrowSuccess, toast, borrowInput]);
+    if (borrowError) {
+      const errorMsg = borrowError.message || "Borrow failed";
+      toast({ title: "Borrow failed", description: errorMsg, variant: "error" });
+    }
+  }, [borrowSuccess, borrowError, toast, borrowInput]);
+  
   useEffect(() => {
     if (repaySuccess) {
       toast({ title: "Repayment confirmed", variant: "success" });
       const usd = parseFloat(repayInput || "0");
       if (usd > 0) appendHistory({ type: "repay", amount: usd });
       if (usd > 0) deductForRepay(usd);
+      setRepayInput(""); // Clear input on success
       if (navigator.vibrate) navigator.vibrate(10);
     }
-  }, [repaySuccess, toast, repayInput]);
+    if (repayError) {
+      const errorMsg = repayError.message || "Repayment failed";
+      toast({ title: "Repayment failed", description: errorMsg, variant: "error" });
+    }
+  }, [repaySuccess, repayError, toast, repayInput]);
+  
   useEffect(() => {
     if (withdrawSuccess) {
       toast({ title: "Withdrawal confirmed", variant: "success" });
       const btc = parseFloat(withdrawInput || "0");
       if (btc > 0) appendHistory({ type: "withdraw", amount: btc });
+      setWithdrawInput(""); // Clear input on success
       if (navigator.vibrate) navigator.vibrate(10);
     }
-  }, [withdrawSuccess, toast, withdrawInput]);
+    if (withdrawError) {
+      const errorMsg = withdrawError.message || "Withdrawal failed";
+      toast({ title: "Withdrawal failed", description: errorMsg, variant: "error" });
+    }
+  }, [withdrawSuccess, withdrawError, toast, withdrawInput]);
 
   // Derived borrow capacity and after-borrow ratio
   const collateralBtc = position ? Number(position.collateral) / 1e8 : 0;
@@ -133,30 +162,58 @@ export default function BorrowPage() {
 
   const handleDeposit = async () => {
     const btc = parseFloat(btcInput);
-    if (!btc || btc <= 0) return;
-    const btcAmt = btcToSatoshis(btc);
-    deposit(btcAmt, priceBig);
+    if (!btc || btc <= 0) {
+      toast({ title: "Invalid amount", description: "Please enter a valid BTC amount", variant: "error" });
+      return;
+    }
+    try {
+      const btcAmt = btcToSatoshis(btc);
+      deposit(btcAmt, priceBig);
+    } catch (error: any) {
+      toast({ title: "Deposit error", description: error.message || "Failed to deposit", variant: "error" });
+    }
   };
 
   const handleBorrow = async () => {
     const usd = parseFloat(borrowInput);
-    if (!usd || usd <= 0) return;
-    const borrowAmt = usdToUnits(usd);
-    borrow(borrowAmt, priceBig);
+    if (!usd || usd <= 0) {
+      toast({ title: "Invalid amount", description: "Please enter a valid MUSD amount", variant: "error" });
+      return;
+    }
+    try {
+      const borrowAmt = usdToUnits(usd);
+      borrow(borrowAmt, priceBig);
+    } catch (error: any) {
+      toast({ title: "Borrow error", description: error.message || "Failed to borrow", variant: "error" });
+    }
   };
 
   const handleRepay = async () => {
     const usd = parseFloat(repayInput);
-    if (!usd || usd <= 0) return;
-    const repayAmt = usdToUnits(usd);
-    repay(repayAmt);
+    if (!usd || usd <= 0) {
+      toast({ title: "Invalid amount", description: "Please enter a valid MUSD amount", variant: "error" });
+      return;
+    }
+    try {
+      const repayAmt = usdToUnits(usd);
+      repay(repayAmt);
+    } catch (error: any) {
+      toast({ title: "Repay error", description: error.message || "Failed to repay", variant: "error" });
+    }
   };
 
   const handleWithdraw = async () => {
     const btc = parseFloat(withdrawInput);
-    if (!btc || btc <= 0) return;
-    const amt = btcToSatoshis(btc);
-    withdraw(amt, priceBig);
+    if (!btc || btc <= 0) {
+      toast({ title: "Invalid amount", description: "Please enter a valid BTC amount", variant: "error" });
+      return;
+    }
+    try {
+      const amt = btcToSatoshis(btc);
+      withdraw(amt, priceBig);
+    } catch (error: any) {
+      toast({ title: "Withdraw error", description: error.message || "Failed to withdraw", variant: "error" });
+    }
   };
 
   return (
