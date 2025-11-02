@@ -6,6 +6,7 @@
  */
 
 import { useWriteContract, useReadContract } from 'wagmi';
+import { mezoTestnet } from '@/config/wallet';
 import type { Address } from 'viem';
 
 // ✅ DEPLOYED CONTRACT ADDRESS
@@ -124,20 +125,17 @@ export function useGetPosition(userAddress?: Address) {
   const { data, isLoading, error, refetch } = useReadContract({
     address: VAULT_MANAGER_ADDRESS,
     abi: VaultManagerABI,
-    functionName: 'getPosition',
+    functionName: 'positions',
     args: userAddress ? [userAddress] : undefined,
+    chainId: mezoTestnet.id,
     query: {
       enabled: !!userAddress,
-      refetchInterval: 5000, // Refetch every 5 seconds
+      refetchInterval: 5000,
     },
   });
 
-  // Handle tuple/struct return format
   let position: UserPosition | undefined = undefined;
-  
   if (data) {
-    // Contract returns a struct tuple: [collateral, borrowed, interestOwed, lastUpdate, btcPrice]
-    // Check if it's an array (tuple) or already an object
     if (Array.isArray(data)) {
       position = {
         collateral: BigInt(data[0] || 0),
@@ -147,9 +145,13 @@ export function useGetPosition(userAddress?: Address) {
         btcPrice: BigInt(data[4] || 0),
       };
     } else if (typeof data === 'object' && 'collateral' in data) {
-      // Already in object format
       position = data as UserPosition;
     }
+  }
+
+  if (typeof window !== 'undefined') {
+    console.log('Position data (raw):', data);
+    if (position) console.log('Position (parsed):', position);
   }
 
   return { position, isLoading, error, refetch };
@@ -164,6 +166,7 @@ export function useGetCollateralRatio(userAddress?: Address, btcPrice?: bigint) 
     abi: VaultManagerABI,
     functionName: 'getCollateralRatio',
     args: userAddress && btcPrice ? [userAddress, btcPrice] : undefined,
+    chainId: mezoTestnet.id,
   });
 
   return { ratio: data as unknown as bigint | undefined, isLoading, error };
