@@ -10,6 +10,10 @@ A Bitcoin-backed financial platform built on the Mezo Network for the **Mezo Hac
 
 *Make sure to connect MetaMask to Mezo Testnet (Chain ID: 31611)*
 
+## 🎥 Presentation
+
+**👉 [View the presentation](https://mezovaultheckathonpresentation.lovable.app/)**
+
 ---
 
 ## 🎯 Overview
@@ -45,7 +49,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 Add Mezo Testnet to MetaMask:
 
-| Field | Value |
+| Field | Value git
 |-------|-------|
 | **Network Name** | Mezo Testnet |
 | **RPC URL** | https://rpc.test.mezo.org |
