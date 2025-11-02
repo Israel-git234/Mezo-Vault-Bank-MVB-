@@ -2,6 +2,7 @@
  * Smart Contract Integration
  * 
  * This file contains hooks and utilities for interacting with deployed contracts
+ * Updated: Fixed deposit function to send native BTC value
  */
 
 import { useWriteContract, useReadContract } from 'wagmi';
