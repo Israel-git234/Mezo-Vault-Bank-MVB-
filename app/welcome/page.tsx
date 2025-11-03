@@ -166,7 +166,7 @@ export default function WelcomePage() {
                 <Bitcoin className="w-12 h-12 text-indigo-600 mb-4" />
                 <h3 className="text-xl font-bold mb-2">Borrow Against BTC</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Fixed 3.5% APR. Keep your Bitcoin, access liquidity.
+                  Fixed 1% APR. Keep your Bitcoin, access liquidity.
                 </p>
               </div>
 

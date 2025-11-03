@@ -9,6 +9,7 @@ import Card from "@/components/Card";
 import Button from "@/components/Button";
 import { Calculator, TrendingDown, Shield } from "lucide-react";
 import { formatBTC, formatMUSD } from "@/lib/utils";
+import { MEZO_CONFIG } from "@/config/mezo";
 import {
   useDepositCollateral,
   useBorrowMUSD,
@@ -53,8 +54,24 @@ export default function BorrowPage() {
   const { ratio } = useGetCollateralRatio(userAddr, priceBig);
 
   const loanStats = {
-    currentRate: 3.5,
-    collateralRatio: 150,
+    currentRate: MEZO_CONFIG.loans.fixedRateAPR,
+    collateralRatio: MEZO_CONFIG.loans.minCollateralRatio,
+  };
+
+  // Mezo Passport (UI-only) state
+  const [passportConnected, setPassportConnected] = useState<boolean>(false);
+  useEffect(() => {
+    try {
+      const connected = typeof window !== 'undefined' && localStorage.getItem('mezoPassportConnected') === 'true';
+      setPassportConnected(!!connected);
+    } catch {}
+  }, []);
+  const connectPassport = () => {
+    try {
+      localStorage.setItem('mezoPassportConnected', 'true');
+      setPassportConnected(true);
+      toast({ title: "Mezo Passport connected", variant: "success" });
+    } catch {}
   };
 
   const collateralValueUsd = useMemo(() => {
@@ -206,6 +223,10 @@ export default function BorrowPage() {
       toast({ title: "Invalid amount", description: "Please enter a valid MUSD amount", variant: "error" });
       return;
     }
+    if (!passportConnected) {
+      toast({ title: "Connect Mezo Passport", description: "Please connect Mezo Passport before borrowing.", variant: "error" });
+      return;
+    }
     if (maxBorrowableUsd <= 0) {
       toast({ title: "No borrowing capacity", description: "Deposit collateral first to borrow", variant: "error" });
       return;
@@ -260,7 +281,7 @@ export default function BorrowPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2 gradient-text">Borrow MUSD</h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Use your Bitcoin as collateral to borrow MUSD at fixed rates. Keep your BTC upside while accessing liquidity.
+            Use your Bitcoin as collateral to borrow MUSD at a fixed 1% APR. Keep your BTC upside while accessing liquidity.
           </p>
         </div>
 
@@ -403,6 +424,12 @@ export default function BorrowPage() {
                       style={{ width: `${Math.max(0, Math.min(100, afterBorrowRatio / 3))}%` }}
                     />
                   </div>
+                  {/* Health warnings */}
+                  {afterBorrowDebt > 0 && afterBorrowRatio < 150 && (
+                    <p className="text-sm mt-2 text-red-600 dark:text-red-400">
+                      Warning: After-borrow ratio would fall below {loanStats.collateralRatio}%. Reduce amount or add collateral.
+                    </p>
+                  )}
                 </div>
 
                 {/* Terms */}
@@ -421,13 +448,20 @@ export default function BorrowPage() {
                   </div>
                 </div>
 
+                {/* Passport notice */}
+                {!passportConnected && (
+                  <div className="rounded-lg p-3 bg-yellow-50 dark:bg-yellow-900/20 text-sm text-yellow-700 dark:text-yellow-300">
+                    Mezo Passport not connected. <button className="underline" onClick={connectPassport}>Connect now</button>
+                  </div>
+                )}
+
                 <Button 
                   className="w-full" 
                   size="lg" 
                   variant="secondary" 
                   isLoading={isBorrowing} 
                   onClick={handleBorrow}
-                  disabled={maxBorrowableUsd <= 0 || isBorrowing}
+                  disabled={maxBorrowableUsd <= 0 || isBorrowing || !passportConnected || (afterBorrowDebt > 0 && afterBorrowRatio < loanStats.collateralRatio)}
                 >
                   <TrendingDown className="w-5 h-5 mr-2" />
                   Borrow MUSD

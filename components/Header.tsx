@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "./Button";
 import { Wallet, Menu, X, Bitcoin } from "lucide-react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
@@ -15,6 +15,21 @@ export default function Header() {
 	const { disconnect } = useDisconnect();
 	const pathname = usePathname();
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+	const [passportConnected, setPassportConnected] = useState(false);
+
+	useEffect(() => {
+		try {
+			const connected = typeof window !== 'undefined' && localStorage.getItem('mezoPassportConnected') === 'true';
+			setPassportConnected(!!connected);
+		} catch {}
+	}, []);
+
+	const connectPassport = () => {
+		try {
+			localStorage.setItem('mezoPassportConnected', 'true');
+			setPassportConnected(true);
+		} catch {}
+	};
 
 	const handleConnect = () => {
 		connect({ connector: injected() });
@@ -62,6 +77,14 @@ export default function Header() {
 
 				{/* Actions */}
 					<div className="flex items-center space-x-3">
+						{passportConnected ? (
+							<span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">Passport ✓</span>
+						) : (
+							<Button variant="outline" size="sm" onClick={connectPassport}>
+								<span className="hidden sm:inline">Connect Passport</span>
+								<span className="sm:hidden">Passport</span>
+							</Button>
+						)}
 						<Button
 							variant={isConnected ? "outline" : "default"}
 							size="sm"

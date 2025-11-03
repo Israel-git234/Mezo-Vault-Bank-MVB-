@@ -37,7 +37,7 @@ export const MEZO_CONFIG = {
     minCollateralRatio: 150, // 150% collateralization required
     maxLoanTerm: 365, // days
     liquidationThreshold: 125, // 125% - triggers liquidation
-    fixedRateAPR: 3.5, // Default 3.5% APR
+    fixedRateAPR: 1.0, // Fixed 1% APR (hackathon requirement)
   },
 
   // Yield Configuration

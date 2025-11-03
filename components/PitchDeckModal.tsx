@@ -44,7 +44,7 @@ export default function PitchDeckModal({ isOpen, onClose }: PitchDeckModalProps)
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
                 <h3 className="font-bold text-lg mb-2">🏦 Borrow Against Bitcoin</h3>
-                <p className="text-sm">Keep your BTC, access liquidity at 3.5% fixed APR. No capital gains taxes.</p>
+                <p className="text-sm">Keep your BTC, access liquidity at 1% fixed APR. No capital gains taxes.</p>
               </div>
               <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                 <h3 className="font-bold text-lg mb-2">📈 Self-Repaying Loans</h3>
@@ -78,7 +78,7 @@ export default function PitchDeckModal({ isOpen, onClose }: PitchDeckModalProps)
                   2
                 </div>
                 <h4 className="font-semibold mb-2">Borrow MUSD</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Fixed 3.5% rate, predictable payments</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Fixed 1% rate, predictable payments</p>
               </div>
               <div className="text-gray-400 text-2xl">→</div>
               <div className="flex-1 text-center">
@@ -137,6 +137,9 @@ export default function PitchDeckModal({ isOpen, onClose }: PitchDeckModalProps)
     </div>
   );
 }
+
+
+
 
 
 
